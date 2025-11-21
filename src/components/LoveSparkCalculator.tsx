@@ -7,7 +7,6 @@ import * as z from 'zod';
 import { Heart, LoaderCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { collection, serverTimestamp } from 'firebase/firestore';
-import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -210,18 +209,6 @@ export default function LoveSparkCalculator() {
                 'Calculate Spark'
               )}
             </Button>
-            {user?.isAnonymous && !isUserLoading && (
-              <p className="text-center text-sm text-foreground/70">
-                Your history is being saved. To keep it permanently,{' '}
-                <Link
-                  href="/login"
-                  className="underline hover:text-primary"
-                >
-                  sign in
-                </Link>
-                .
-              </p>
-            )}
           </form>
         </Form>
       </CardContent>
