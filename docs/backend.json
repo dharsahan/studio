@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "CalculationResult": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CalculationResult",
+      "type": "object",
+      "description": "Represents the result of a compatibility calculation between two names.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the calculation result."
+        },
+        "name1": {
+          "type": "string",
+          "description": "The first name used in the calculation."
+        },
+        "name2": {
+          "type": "string",
+          "description": "The second name used in the calculation."
+        },
+        "compatibilityPercentage": {
+          "type": "number",
+          "description": "The calculated compatibility percentage (0-100)."
+        },
+        "playfulMessage": {
+          "type": "string",
+          "description": "A playful message generated based on the compatibility calculation."
+        },
+        "calculationDate": {
+          "type": "string",
+          "description": "The date and time when the calculation was performed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name1",
+        "name2",
+        "compatibilityPercentage",
+        "playfulMessage",
+        "calculationDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/calculations/{calculationId}",
+        "definition": {
+          "entityName": "CalculationResult",
+          "schema": {
+            "$ref": "#/backend/entities/CalculationResult"
+          },
+          "description": "Stores calculation results for a specific user. Path-based ownership ensures that only the authenticated user can access their own calculations. Includes all CalculationResult fields.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "calculationId",
+              "description": "The unique identifier of the calculation result."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to store calculation results for users of the LoveSpark Calculator app. Each user has their own collection of calculation results, ensuring data privacy and easy retrieval of past calculations.  The structure uses path-based ownership for calculations, located under `/users/{userId}/calculations/{calculationId}`, providing a clear hierarchy and simplifying security rules. This approach naturally isolates user data. Each calculation result document contains all the necessary data, including input names, compatibility percentage, playful message, and calculation date.  Authorization Independence is achieved because all data related to a user's calculation is self-contained within their specific user path. No `get()` calls are required in security rules to validate ownership or permissions, ensuring atomic operations are possible.  QAPs (Rules are not Filters): The structure enables secure `list` operations because each user's calculations are stored in their own subcollection. Security rules can easily enforce that only the authenticated user can list their own calculations without needing to filter based on document content."
+  }
+}

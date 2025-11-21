@@ -1,0 +1,103 @@
+/**
+ * This ruleset enforces a strict user-ownership security model for the LoveSpark
+ * Calculator application. The core philosophy is that all user-generated data is
+ * private and can only be accessed by the user who created it.
+ *
+ * --- Data Structure ---
+ * All user data, specifically calculation results, is nested under a user-specific
+ * path: `/users/{userId}/calculations/{calculationId}`. This hierarchical
+ * structure inherently isolates each user's data, simplifying security logic
+ * and ensuring privacy.
+ *
+ * --- Key Security Decisions ---
+ * - User Data Isolation: A user can only read or write documents within their own
+ *   data tree (i.e., under `/users/{their-own-userId}`).
+ * - No User Enumeration: Listing the top-level `/users` collection is explicitly
+ *   disallowed to prevent leaking user IDs.
+ * - Ownership is Path-Based: Authorization is determined by matching the
+ *   authenticated user's UID with the `{userId}` segment in the document path. This
+ *   avoids the need for extra database reads (`get()`) within the rules, resulting
+ *   in faster and more scalable security.
+ * - Prototyping Flexibility: These rules enforce strict authorization (who can
+ *   access what) but do not validate the specific shape or data types of the
+ *   `CalculationResult` documents. This allows for rapid application development
+ *   and schema iteration without needing to update security rules for every
+ *   minor data model change.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently signed-in user's UID matches the provided userId.
+     * This is the primary function for enforcing data ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * A robust check for update/delete operations, ensuring the user is the
+     * owner AND the document they are trying to modify already exists.
+     * This prevents unauthorized modifications and errors on non-existent docs.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Governs access to the root user document. It allows a user to
+     *   create their own document but not to view, modify, or delete others.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user creating their own user document:
+     *   `db.collection('users').doc('user_abc').set({...})` where auth.uid is 'user_abc'.
+     * @deny (list) Any user, signed in or not, attempting to list all users:
+     *   `db.collection('users').get()`.
+     * @deny (get) User 'user_xyz' trying to read the document for 'user_abc'.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if false; // User profile document is not defined; default to immutable.
+      allow delete: if false; // Deleting a user document could orphan subcollections.
+
+      /**
+       * @description Governs access to a user's private calculation results.
+       *   Only the authenticated owner of the data can perform any action
+       *   (read, list, create, update, delete) on their own calculations.
+       * @path /users/{userId}/calculations/{calculationId}
+       * @allow (create) User 'user_abc' creating a new calculation:
+       *   `db.collection('users/user_abc/calculations').add({...})`.
+       * @allow (list) User 'user_abc' listing their own past calculations:
+       *   `db.collection('users/user_abc/calculations').get()`.
+       * @deny (get) User 'user_xyz' trying to read a calculation belonging to 'user_abc'.
+       * @deny (update) A signed-out user attempting to update any calculation.
+       * @principle Enforces strict document ownership for all CRUD operations.
+       */
+      match /calculations/{calculationId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isExistingOwner(userId);
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+  }
+}
