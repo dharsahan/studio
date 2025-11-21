@@ -34,8 +34,8 @@ import {
   useUser,
   addDocumentNonBlocking,
   useAuth,
-  initiateAnonymousSignIn,
 } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   name1: z.string().min(1, 'Please enter the first name.').max(50),
@@ -72,6 +72,7 @@ export default function LoveSparkCalculator() {
   const firestore = useFirestore();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -83,18 +84,18 @@ export default function LoveSparkCalculator() {
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-      initiateAnonymousSignIn(auth);
+      router.push('/login');
     }
-  }, [isUserLoading, user, auth]);
+  }, [isUserLoading, user, router]);
 
   async function onSubmit(values: FormValues) {
     if (!user) {
       toast({
         variant: 'destructive',
-        title: 'Authentication not ready',
-        description:
-          'Please wait a moment for authentication to complete and try again.',
+        title: 'Not Signed In',
+        description: 'You must be signed in to calculate a spark.',
       });
+      router.push('/login');
       return;
     }
 
@@ -149,6 +150,14 @@ export default function LoveSparkCalculator() {
 
     setLoading(false);
     form.reset();
+  }
+  
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex justify-center items-center h-[calc(100vh-200px)]">
+        <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (

@@ -9,7 +9,6 @@ import {
   useUser,
   useMemoFirebase,
   useAuth,
-  initiateAnonymousSignIn,
 } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { Calculation } from '@/lib/types';
@@ -23,10 +22,9 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-      // If not loading and no user, initiate anonymous sign-in
-      initiateAnonymousSignIn(auth);
+      router.push('/login');
     }
-  }, [user, isUserLoading, auth]);
+  }, [user, isUserLoading, auth, router]);
 
   const calculationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
