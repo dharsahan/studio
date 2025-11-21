@@ -8,6 +8,8 @@ import {
   useFirestore,
   useUser,
   useMemoFirebase,
+  useAuth,
+  initiateAnonymousSignIn,
 } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { Calculation } from '@/lib/types';
@@ -15,15 +17,16 @@ import { LoaderCircle } from 'lucide-react';
 
 export default function HistoryPage() {
   const firestore = useFirestore();
+  const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    // If auth is done loading and there's no user, redirect to login
     if (!isUserLoading && !user) {
-      router.replace('/login');
+      // If not loading and no user, initiate anonymous sign-in
+      initiateAnonymousSignIn(auth);
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, auth]);
 
   const calculationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -36,7 +39,6 @@ export default function HistoryPage() {
   const { data: calculations, isLoading } =
     useCollection<Calculation>(calculationsQuery);
 
-  // While checking auth or if user is null (and redirect is imminent), show loading
   if (isUserLoading || !user) {
     return (
       <div className="flex justify-center items-center h-[calc(100vh-200px)]">

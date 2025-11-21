@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -30,7 +30,13 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { getPlayfulMessageAction } from '@/lib/actions';
 import Sparkles from './Sparkles';
-import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
+import {
+  useFirestore,
+  useUser,
+  addDocumentNonBlocking,
+  useAuth,
+  initiateAnonymousSignIn,
+} from '@/firebase';
 
 const formSchema = z.object({
   name1: z.string().min(1, 'Please enter the first name.').max(50),
@@ -65,6 +71,7 @@ export default function LoveSparkCalculator() {
   const [result, setResult] = useState<Result | null>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
+  const auth = useAuth();
   const { user, isUserLoading } = useUser();
 
   const form = useForm<FormValues>({
@@ -75,12 +82,19 @@ export default function LoveSparkCalculator() {
     },
   });
 
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [isUserLoading, user, auth]);
+
   async function onSubmit(values: FormValues) {
     if (!user) {
       toast({
         variant: 'destructive',
-        title: 'Please sign in',
-        description: 'You need to be logged in to calculate a spark.',
+        title: 'Authentication not ready',
+        description:
+          'Please wait a moment for authentication to complete and try again.',
       });
       return;
     }
@@ -108,11 +122,13 @@ export default function LoveSparkCalculator() {
       return;
     }
 
-    setResult({
+    const newResult = {
       percentage: compatibilityPercentage,
       message: messageResult.message,
       names: values,
-    });
+    };
+
+    setResult(newResult);
 
     const calculationData = {
       name1: values.name1,
@@ -122,13 +138,15 @@ export default function LoveSparkCalculator() {
       createdAt: serverTimestamp(),
     };
 
-    const calculationsRef = collection(
-      firestore,
-      'users',
-      user.uid,
-      'calculations'
-    );
-    addDocumentNonBlocking(calculationsRef, calculationData);
+    if (user.uid) {
+      const calculationsRef = collection(
+        firestore,
+        'users',
+        user.uid,
+        'calculations'
+      );
+      addDocumentNonBlocking(calculationsRef, calculationData);
+    }
 
     setLoading(false);
     form.reset();
@@ -181,7 +199,7 @@ export default function LoveSparkCalculator() {
             <Button
               type="submit"
               className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
-              disabled={loading || isUserLoading || !user}
+              disabled={loading || isUserLoading}
             >
               {loading ? (
                 <>
@@ -192,10 +210,17 @@ export default function LoveSparkCalculator() {
                 'Calculate Spark'
               )}
             </Button>
-            {!user && !isUserLoading && (
-                 <p className="text-center text-sm text-foreground/70">
-                    <Link href="/login" className="underline hover:text-primary">Sign in</Link> to save your calculations.
-                 </p>
+            {user?.isAnonymous && !isUserLoading && (
+              <p className="text-center text-sm text-foreground/70">
+                Your history is being saved. To keep it permanently,{' '}
+                <Link
+                  href="/login"
+                  className="underline hover:text-primary"
+                >
+                  sign in
+                </Link>
+                .
+              </p>
             )}
           </form>
         </Form>
