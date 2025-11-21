@@ -1,25 +1,49 @@
-"use client";
+'use client';
 
-import { HistoryList } from "@/components/HistoryList";
-import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
-import type { Calculation } from "@/lib/types";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { HistoryList } from '@/components/HistoryList';
+import {
+  useCollection,
+  useFirestore,
+  useUser,
+  useMemoFirebase,
+} from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import type { Calculation } from '@/lib/types';
+import { LoaderCircle } from 'lucide-react';
 
 export default function HistoryPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    // If auth is done loading and there's no user, redirect to login
+    if (!isUserLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, isUserLoading, router]);
 
   const calculationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
-      collection(firestore, "users", user.uid, "calculations"),
-      orderBy("createdAt", "desc")
+      collection(firestore, 'users', user.uid, 'calculations'),
+      orderBy('createdAt', 'desc')
     );
   }, [firestore, user]);
 
-  const { data: calculations, isLoading } = useCollection<Calculation>(
-    calculationsQuery
-  );
+  const { data: calculations, isLoading } =
+    useCollection<Calculation>(calculationsQuery);
+
+  // While checking auth or if user is null (and redirect is imminent), show loading
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex justify-center items-center h-[calc(100vh-200px)]">
+        <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -33,7 +57,7 @@ export default function HistoryPage() {
       </div>
       <HistoryList
         calculations={calculations ?? []}
-        isLoading={isLoading || isUserLoading}
+        isLoading={isLoading}
       />
     </div>
   );

@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import Link from "next/link";
-import { Button } from "./ui/button";
-import { Heart, History } from "lucide-react";
-import { useAuth, useUser } from "@/firebase";
-import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Button } from './ui/button';
+import { Heart, History, LogIn, LogOut, UserPlus } from 'lucide-react';
+import { useAuth, useUser } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 export function Header() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
 
-  useEffect(() => {
-    if (!user && !isUserLoading) {
-      initiateAnonymousSignIn(auth);
-    }
-  }, [user, isUserLoading, auth]);
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.push('/');
+  };
 
   return (
     <header className="py-4 px-4 md:px-8 border-b">
@@ -26,13 +26,38 @@ export function Header() {
             LoveSpark Calculator
           </h1>
         </Link>
-        <nav>
-          <Button asChild variant="ghost" disabled={!user}>
-            <Link href="/history">
-              <History className="mr-2" />
-              History
-            </Link>
-          </Button>
+        <nav className="flex items-center gap-2">
+          {isUserLoading ? (
+            <div className="h-10 w-24 bg-muted animate-pulse rounded-md" />
+          ) : user ? (
+            <>
+              <Button asChild variant="ghost">
+                <Link href="/history">
+                  <History className="mr-2" />
+                  History
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut className="mr-2" />
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button asChild variant="ghost">
+                <Link href="/login">
+                  <LogIn className="mr-2" />
+                  Login
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link href="/signup">
+                  <UserPlus className="mr-2" />
+                  Sign Up
+                </Link>
+              </Button>
+            </>
+          )}
         </nav>
       </div>
     </header>
