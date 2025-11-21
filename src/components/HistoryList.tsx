@@ -4,8 +4,31 @@ import type { Calculation } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from 'date-fns';
 import { Heart } from "lucide-react";
+import { Skeleton } from "./ui/skeleton";
 
-export function HistoryList({ calculations }: { calculations: Calculation[] }) {
+export function HistoryList({ calculations, isLoading }: { calculations: Calculation[], isLoading: boolean }) {
+  if (isLoading) {
+    return (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="flex flex-col">
+                    <CardHeader>
+                        <Skeleton className="h-6 w-3/4 mx-auto" />
+                        <Skeleton className="h-4 w-1/2 mx-auto !mt-3" />
+                    </CardHeader>
+                    <CardContent className="flex-grow flex flex-col items-center justify-center text-center space-y-4">
+                        <Skeleton className="h-12 w-24 mx-auto" />
+                        <div className="space-y-2 w-full">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-5/6" />
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+    );
+  }
+  
   if (calculations.length === 0) {
     return (
       <div className="text-center py-16">
@@ -26,7 +49,7 @@ export function HistoryList({ calculations }: { calculations: Calculation[] }) {
               <span>{calc.name2}</span>
             </CardTitle>
             <CardDescription className="text-center !mt-2">
-              {format(calc.createdAt.toDate(), 'MMMM d, yyyy')}
+              {calc.createdAt ? format(calc.createdAt.toDate(), 'MMMM d, yyyy') : 'Date unknown'}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow flex flex-col items-center justify-center text-center space-y-4">

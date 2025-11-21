@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Heart, LoaderCircle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { collection, serverTimestamp } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +27,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { getPlayfulMessageAction, saveCalculationAction } from "@/lib/actions";
+import { getPlayfulMessageAction } from "@/lib/actions";
 import Sparkles from "./Sparkles";
+import { useFirestore, useUser, addDocumentNonBlocking } from "@/firebase";
 
 const formSchema = z.object({
   name1: z.string().min(1, "Please enter the first name.").max(50),
@@ -58,6 +60,8 @@ export default function LoveSparkCalculator() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user } = useUser();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -68,6 +72,15 @@ export default function LoveSparkCalculator() {
   });
 
   async function onSubmit(values: FormValues) {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Oh no!",
+        description: "You must be signed in to calculate your spark.",
+      });
+      return;
+    }
+
     setLoading(true);
     setResult(null);
 
@@ -93,12 +106,17 @@ export default function LoveSparkCalculator() {
         message: messageResult.message,
         names: values,
     });
-
-    await saveCalculationAction({
-        ...values,
+    
+    const calculationData = {
+        name1: values.name1,
+        name2: values.name2,
         percentage: compatibilityPercentage,
         message: messageResult.message,
-    });
+        createdAt: serverTimestamp(),
+    };
+
+    const calculationsRef = collection(firestore, "users", user.uid, "calculations");
+    addDocumentNonBlocking(calculationsRef, calculationData);
     
     setLoading(false);
     form.reset();
@@ -146,7 +164,7 @@ export default function LoveSparkCalculator() {
                 )}
               />
             </div>
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={loading}>
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={loading || !user}>
               {loading ? (
                 <>
                   <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />

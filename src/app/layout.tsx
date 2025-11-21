@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Header } from "@/components/Header";
+import { FirebaseClientProvider } from "@/firebase";
 
 export const metadata: Metadata = {
   title: "LoveSpark Calculator",
@@ -30,9 +31,11 @@ export default function RootLayout({
           "dark:bg-gradient-to-br dark:from-background dark:to-slate-900"
         )}
       >
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Toaster />
+        <FirebaseClientProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Toaster />
+        </FirebaseClientProvider>
       </body>
     </html>
   );

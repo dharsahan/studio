@@ -1,8 +1,22 @@
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { Heart, History } from "lucide-react";
+import { useAuth, useUser } from "@/firebase";
+import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 
 export function Header() {
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+
+  useEffect(() => {
+    if (!user && !isUserLoading) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [user, isUserLoading, auth]);
+
   return (
     <header className="py-4 px-4 md:px-8 border-b">
       <div className="container mx-auto flex justify-between items-center">
@@ -13,7 +27,7 @@ export function Header() {
           </h1>
         </Link>
         <nav>
-          <Button asChild variant="ghost">
+          <Button asChild variant="ghost" disabled={!user}>
             <Link href="/history">
               <History className="mr-2" />
               History
