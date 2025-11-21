@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
 import { HistoryList } from "@/components/HistoryList";
-import { useCollection, useFirestore, useUser } from "@/firebase";
+import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import type { Calculation } from "@/lib/types";
 
@@ -10,7 +9,7 @@ export default function HistoryPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
-  const calculationsQuery = useMemo(() => {
+  const calculationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, "users", user.uid, "calculations"),
