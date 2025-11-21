@@ -8,7 +8,6 @@ import {
   useFirestore,
   useUser,
   useMemoFirebase,
-  useAuth,
 } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { Calculation } from '@/lib/types';
@@ -16,18 +15,17 @@ import { LoaderCircle } from 'lucide-react';
 
 export default function HistoryPage() {
   const firestore = useFirestore();
-  const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (!isUserLoading && (!user || user.isAnonymous)) {
       router.push('/login');
     }
-  }, [user, isUserLoading, auth, router]);
+  }, [user, isUserLoading, router]);
 
   const calculationsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user || user.isAnonymous) return null;
     return query(
       collection(firestore, 'users', user.uid, 'calculations'),
       orderBy('createdAt', 'desc')
@@ -37,7 +35,7 @@ export default function HistoryPage() {
   const { data: calculations, isLoading } =
     useCollection<Calculation>(calculationsQuery);
 
-  if (isUserLoading || !user) {
+  if (isUserLoading || !user || user.isAnonymous) {
     return (
       <div className="flex justify-center items-center h-[calc(100vh-200px)]">
         <LoaderCircle className="h-10 w-10 animate-spin text-primary" />

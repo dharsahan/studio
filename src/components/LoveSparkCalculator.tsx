@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Heart, LoaderCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { collection, serverTimestamp } from 'firebase/firestore';
+import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ import {
   useUser,
   addDocumentNonBlocking,
   useAuth,
+  initiateAnonymousSignIn,
 } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
@@ -84,19 +86,29 @@ export default function LoveSparkCalculator() {
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-      router.push('/login');
+      initiateAnonymousSignIn(auth);
     }
-  }, [isUserLoading, user, router]);
+  }, [isUserLoading, user, auth]);
 
   async function onSubmit(values: FormValues) {
-    if (!user) {
-      toast({
-        variant: 'destructive',
-        title: 'Not Signed In',
-        description: 'You must be signed in to calculate a spark.',
-      });
-      router.push('/login');
+    if (isUserLoading) {
       return;
+    }
+    
+    let userId = user?.uid;
+    if (!userId) {
+      // Re-initiate anonymous sign-in if the user is somehow not available
+      const userCredential = await initiateAnonymousSignIn(auth);
+      if(userCredential?.user?.uid) {
+        userId = userCredential.user.uid;
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Authentication Error',
+          description: 'Could not resolve user. Please try again.',
+        });
+        return;
+      }
     }
 
     setLoading(true);
@@ -138,28 +150,18 @@ export default function LoveSparkCalculator() {
       createdAt: serverTimestamp(),
     };
 
-    if (user.uid) {
-      const calculationsRef = collection(
-        firestore,
-        'users',
-        user.uid,
-        'calculations'
-      );
-      addDocumentNonBlocking(calculationsRef, calculationData);
-    }
+    const calculationsRef = collection(
+      firestore,
+      'users',
+      userId,
+      'calculations'
+    );
+    addDocumentNonBlocking(calculationsRef, calculationData);
 
     setLoading(false);
     form.reset();
   }
   
-  if (isUserLoading || !user) {
-    return (
-      <div className="flex justify-center items-center h-[calc(100vh-200px)]">
-        <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <Card className="w-full max-w-md shadow-2xl shadow-primary/10">
       <CardHeader className="text-center">
