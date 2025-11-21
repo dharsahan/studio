@@ -27,7 +27,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { LoaderCircle } from 'lucide-react';
-import Link from 'next/link';
 
 const formSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
@@ -146,14 +145,6 @@ export default function LoginPage() {
             </form>
           </Form>
         </CardContent>
-        <div className="p-6 pt-0 text-center text-sm">
-          <p>
-            Don&apos;t have an account?{' '}
-            <Button variant="link" asChild className="p-0 h-auto">
-              <Link href="/signup">Sign up</Link>
-            </Button>
-          </p>
-        </div>
       </Card>
     </div>
   );

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from './ui/button';
-import { Heart, History, LogIn, LogOut, UserPlus } from 'lucide-react';
+import { Heart, History, LogIn, LogOut } from 'lucide-react';
 import { useAuth, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 
@@ -48,12 +48,6 @@ export function Header() {
                 <Link href="/login">
                   <LogIn className="mr-2" />
                   Login
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="/signup">
-                  <UserPlus className="mr-2" />
-                  Sign Up
                 </Link>
               </Button>
             </>
